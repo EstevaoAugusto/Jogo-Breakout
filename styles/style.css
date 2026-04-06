@@ -1,0 +1,80 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 16px; /* Recommended for clarity */
+}
+
+
+header {
+    text-align: center;
+    padding: 10px;
+}
+
+footer {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+}
+
+section {
+    align-items: center;
+}
+
+.lives {
+  display: flex;
+  gap: 10px;
+  font-size: 24px;
+}
+
+#audioOption {
+    cursor: pointer;
+    display: inline-block;        /* importante para transform */
+    transition: transform 0.2s ease, color 0.2s ease; /* animação suave */
+}
+
+#audioOption:hover {
+    transform: scale(1.2) translateX(10%);       /* aumenta 20% */
+    color: red;                   /* opcional: muda cor */
+}
+
+.grid {
+    background-color: white;
+    width: 1000px;
+    height: 360px;
+    position: relative;
+    border: solid 1px black;
+    margin-top: 100px
+}
+
+.user {
+    position: absolute;
+    width: 100px;
+    height: 20px;
+    background-color: purple;
+}
+
+.block{
+    position: absolute;
+    width: 100px;
+    height: 20px;
+    
+}
+
+.ball {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 100%;
+    border: solid 2px black;
+    background-color: white;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    margin: 16px;
+}
