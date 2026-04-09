@@ -3,7 +3,7 @@ Jogo Breakout desenvolvido puramente em HTML, CSS e Javascript. Projeto feito pa
 
 ## Descrição do Jogo
 
-Breakout é um clássico Jogo de quebrar blocos
+Breakout é um clássico Jogo de quebrar blocos. Utilize as setas do teclado para controlar aonde a bola vai para quebrar blocos. O objetivo do jogo é fazer o maximo de pontos possível e conseguir um novo high score. Para cada exército de blocos quebrados, a bola fica mais rápido, assim demandando maior precisão e observação do jogador.
 
 ## Estrutura do Projeto
 

@@ -5,6 +5,9 @@ const grid = document.querySelector('.grid')
 const scoreDisplay = document.querySelector('#score')
 const mainContainer = document.querySelector('.container')
 const startScreen = document.querySelector('#start-screen')
+const startButton = document.querySelector('#start-button')
+const startMessage = document.querySelector('#start-message')
+const highScoresButton = document.querySelector('#high-scores-button')
 const audioButton = document.querySelector('#audio-toggle')
 
 // ------------------------
@@ -50,6 +53,7 @@ function toggleAudio() {
 // -----------------------
 // 3. Estados do Jogo
 // -----------------------
+let timeBall = 30
 const boardWidth = grid.clientWidth
 const boardHeight = grid.clientHeight
 let xDirection = -3
@@ -61,25 +65,55 @@ const rows = 3
 const cols = 7
 const ballDiameter = 20
 const maxLives = 6
-let blockDestroyed = 0
+const playerSpeed = 8
+let blocksDestroyed = 0
 let lives = 3
 let blockHitThisFrame = false
 let timerId
 let score = 0
 let gameData = {
-    highscores: [
-        
-    ]
+    highscores: []
+}
+
+const keysPressed = {
+    ArrowLeft: false,
+    ArrowRight: false
+}
+
+function handleKeyDown(e) {
+    if (e.key === 'ArrowLeft') {
+        keysPressed.ArrowLeft = true
+    } else if (e.key === 'ArrowRight') {
+        keysPressed.ArrowRight = true
+    }
+}
+
+function handleKeyUp(e) {
+    if (e.key === 'ArrowLeft') {
+        keysPressed.ArrowLeft = false
+    } else if (e.key === 'ArrowRight') {
+        keysPressed.ArrowRight = false
+    }
+}
+
+function updatePlayerMovement() {
+    if (keysPressed.ArrowLeft && currentPlayerPosition[0] > 0) {
+        currentPlayerPosition[0] -= playerSpeed
+    }
+    if (keysPressed.ArrowRight && currentPlayerPosition[0] < boardWidth - blockWidth) {
+        currentPlayerPosition[0] += playerSpeed
+    }
+    drawUser()
 }
 
 // -----------------------------
 // 4. Posições Player e Bola
 // -----------------------------
 const useStart = [boardWidth / 2 - blockWidth / 2, 10]
-let currentPlayerPosition = useStart
+let currentPlayerPosition = [...useStart]
 
 const ballStart = [boardWidth / 2 - ballDiameter / 2, 40]
-let currentBallPosition = ballStart
+let currentBallPosition = [...ballStart]
 
 
 class Block {
@@ -139,6 +173,14 @@ function formatScore(){
 }
 formatScore()
 
+function saveHighScore(newScore) {
+    let highscores = loadHighScores()
+    highscores.push({ score: newScore, date: new Date().toLocaleDateString('pt-BR') })
+    highscores.sort((a, b) => b.score - a.score)
+    highscores = highscores.slice(0, 10)
+    saveGameData({ highscores })
+}
+
 function loseLife() {
     lives--                  // diminui 1 vida
     updateLivesDisplay()     // atualiza o display de corações
@@ -147,19 +189,24 @@ function loseLife() {
         clearInterval(timerId)
         scoreDisplay.innerHTML = 'Game Over'
         playSingleSound(gameOverSoundEffect)
-        document.removeEventListener('keydown', moveUser)
+        document.removeEventListener('keydown', handleKeyDown)
+        document.removeEventListener('keyup', handleKeyUp)
+        saveHighScore(score)
+        showGameOverScreen()
     } else {
         // pausa antes de renascer
         clearInterval(timerId)        // pausa a bola
-        document.removeEventListener('keydown', moveUser)
+        document.removeEventListener('keydown', handleKeyDown)
+        document.removeEventListener('keyup', handleKeyUp)
         playSingleSound(deathSoundEffect)
         
         setTimeout(() => {
             resetBall()               // reposiciona bola
             resetPlayer()             // reposiciona player
             scoreDisplay.innerHTML = String(score).padStart(7, '0')
-            document.addEventListener('keydown', moveUser)
-            timerId = setInterval(moveBall, 30)  // retoma o jogo
+            document.addEventListener('keydown', handleKeyDown)
+            document.addEventListener('keyup', handleKeyUp)
+            timerId = setInterval(moveBall, timeBall)  // retoma o jogo
         }, 3000) // pausa de 1 segundo
     }
 }
@@ -187,6 +234,53 @@ function updateLivesDisplay() {
     }
 }
 updateLivesDisplay()
+
+function showStartScreen(message, buttonText) {
+    startMessage.textContent = message
+    startButton.textContent = buttonText
+    startScreen.classList.remove('hidden')
+}
+
+function hideStartScreen() {
+    startScreen.classList.add('hidden')
+}
+
+function resetLevel() {
+    grid.querySelectorAll('.block').forEach((block) => block.remove())
+    blocks.length = 0
+    createBlocks()
+    addBlocks()
+}
+
+function resetGame() {
+    score = 0
+    lives = 3
+    blocksDestroyed = 0
+    blockHitThisFrame = false
+    currentPlayerPosition = [...useStart]
+    currentBallPosition = [...ballStart]
+    xDirection = -3
+    yDirection = 3
+    formatScore()
+    updateLivesDisplay()
+    drawUser()
+    drawBall()
+    resetLevel()
+}
+
+function startGame() {
+    hideStartScreen()
+    resetGame()
+    keysPressed.ArrowLeft = false
+    keysPressed.ArrowRight = false
+    timerId = setInterval(moveBall, timeBall)
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keyup', handleKeyUp)
+}
+
+function showGameOverScreen() {
+    showStartScreen('Game Over! Volte ao menu para recomeçar.', 'Voltar ao menu')
+}
 
 // --------------------------------
 // 7. Armazenamento Local de Pontos
@@ -222,6 +316,36 @@ function loadGameData() {
     console.error("Failed to load game data:", error);
     return null;
   }
+}
+
+function loadHighScores() {
+  const data = loadGameData()
+  return data && data.highscores ? data.highscores : []
+}
+
+function displayHighScoresOverlay() {
+    const highscores = loadHighScores()
+    let content = '<h2 class="screen-title">Melhores Pontuações</h2><div style="text-align: left; font-size: 12px; max-height: 300px; overflow-y: auto;">'
+    
+    if (highscores.length === 0) {
+        content += '<p>Nenhuma pontuação salva ainda!</p>'
+    } else {
+        content += '<table style="width: 100%; border-collapse: collapse; font-size: 12px;"><tr style="border-bottom: 1px solid white;"><td style="padding: 4px; text-align: center;">Pos</td><td style="padding: 4px; text-align: right;">Pontos</td><td style="padding: 4px; text-align: right;">Data</td></tr>'
+        highscores.forEach((entry, index) => {
+            content += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.3);"><td style="padding: 4px; text-align: center;">${index + 1}º</td><td style="padding: 4px; text-align: right;">${entry.score}</td><td style="padding: 4px; text-align: right;">${entry.date}</td></tr>`
+        })
+        content += '</table>'
+    }
+    
+    content += '</div>'
+    startMessage.innerHTML = content
+    startButton.textContent = 'Voltar ao Menu'
+    startButton.onclick = (e) => {
+        e.preventDefault()
+        startButton.onclick = null
+        showStartScreen('Pronto para jogar Breakout?', 'Iniciar Jogo')
+    }
+    startScreen.classList.remove('hidden')
 }
 
 // ----------------------
@@ -270,60 +394,126 @@ function moveUser(e){
 
 // move ball
 function moveBall() {
+    updatePlayerMovement()
     currentBallPosition[0] += xDirection
     currentBallPosition[1] += yDirection
-    drawBall()
     checkForCollision()
+    drawBall()
+}
+
+
+
+
+function getBallBounds() {
+    return {
+        left: currentBallPosition[0],
+        right: currentBallPosition[0] + ballDiameter,
+        bottom: currentBallPosition[1],
+        top: currentBallPosition[1] + ballDiameter,
+        centerX: currentBallPosition[0] + ballDiameter / 2
+    }
+}
+
+function getBlockBounds(block) {
+    return {
+        left: block.bottomLeft[0],
+        right: block.bottomRight[0],
+        bottom: block.bottomLeft[1],
+        top: block.topLeft[1]
+    }
+}
+
+function reflectBallOnBlockCollision(block) {
+    const ball = getBallBounds()
+    const blockBounds = getBlockBounds(block)
+    const overlapX = Math.min(ball.right, blockBounds.right) - Math.max(ball.left, blockBounds.left)
+    const overlapY = Math.min(ball.top, blockBounds.top) - Math.max(ball.bottom, blockBounds.bottom)
+
+    if (overlapX <= 0 || overlapY <= 0) {
+        return
+    }
+
+    if (overlapX < overlapY) {
+        xDirection = xDirection > 0 ? -Math.abs(xDirection) : Math.abs(xDirection)
+    } else {
+        yDirection = yDirection > 0 ? -Math.abs(yDirection) : Math.abs(yDirection)
+    }
+}
+
+function reflectBallOnPaddle() {
+    const ball = getBallBounds()
+    const paddleCenter = currentPlayerPosition[0] + blockWidth / 2
+    const relativeHit = (ball.centerX - paddleCenter) / (blockWidth / 2)
+    const newX = Math.round(relativeHit * 3)
+    const minSpeedX = 1
+
+    xDirection = Math.max(minSpeedX, Math.min(3, Math.abs(newX))) * Math.sign(relativeHit || 1)
+    yDirection = Math.abs(yDirection)
 }
 
 //check for collision
 function checkForCollision() {
+    const ball = getBallBounds()
     blockHitThisFrame = false // reset a cada frame
-    // check for block collision
+
     for (let i = 0; i < blocks.length; i++) {
-        if (currentBallPosition[0] > blocks[i].bottomLeft[0] &&
-            currentBallPosition[0] < blocks[i].bottomRight[0] &&
-            (currentBallPosition[1] + ballDiameter) > blocks[i].bottomLeft[1] &&
-            currentBallPosition[1] < blocks[i].topLeft[1]) {
+        const blockBounds = getBlockBounds(blocks[i])
+
+        if (ball.right > blockBounds.left &&
+            ball.left < blockBounds.right &&
+            ball.top > blockBounds.bottom &&
+            ball.bottom < blockBounds.top) {
                 const allBlocks = document.querySelectorAll('.block')
                 allBlocks[i].classList.remove('block')
-                
-                if(!blockHitThisFrame){
+
+                if (!blockHitThisFrame) {
                     playBlockHitPool()
                     blockHitThisFrame = true
                 }
-                
+
+                reflectBallOnBlockCollision(blocks[i])
                 blocks.splice(i, 1)
-                changeDirection()
-                blockDestroyed++
+                blocksDestroyed++
                 score += 10
                 formatScore()
-                if(score % 100 == 0 && lives < maxLives){
+
+                if (score % 100 === 0 && lives < maxLives) {
                     lives++
                     updateLivesDisplay()
                     lifeSoundEffect.play()
                 }
-                
+                if (blocksDestroyed === rows * cols) {
+                    resetBall()
+                    resetPlayer()
+                    resetLevel()
+                    blocksDestroyed = 0
+                }
+                break
         }
     }
 
-
-    if (currentBallPosition[0] >= (boardWidth - ballDiameter) ||
-        currentBallPosition[0] <= 0 ||
-        currentBallPosition[1] >= (boardHeight - ballDiameter)) {
-        changeDirection()
+    if (ball.left <= 0) {
+        xDirection = Math.abs(xDirection)
     }
 
-    //check for user collision
-    if (currentBallPosition[0] > currentPlayerPosition[0] &&
-        currentBallPosition[0] < currentPlayerPosition[0] + blockWidth &&
-        (currentBallPosition[1] > currentPlayerPosition[1] && 
-            currentBallPosition[1] < currentPlayerPosition[1] + blockHeight)){
-            changeDirection()
-        }
-    
-    // game over
-    if (currentBallPosition[1] <= 0) {
+    if (ball.right >= boardWidth) {
+        xDirection = -Math.abs(xDirection)
+    }
+
+    if (ball.top >= boardHeight) {
+        yDirection = -Math.abs(yDirection)
+    }
+
+    const paddleTop = currentPlayerPosition[1] + blockHeight
+    if (ball.right > currentPlayerPosition[0] &&
+        ball.left < currentPlayerPosition[0] + blockWidth &&
+        ball.bottom <= paddleTop &&
+        ball.bottom >= currentPlayerPosition[1] &&
+        yDirection < 0) {
+            reflectBallOnPaddle()
+    }
+
+    if (ball.bottom <= 0) {
         loseLife()
     }
 }
@@ -351,7 +541,8 @@ function changeDirection(){
 // -------------------
 //  9. Adição de Event Listeners e Intervals
 // ------------------
-timerId = setInterval(moveBall, 30)
-
 audioButton.addEventListener('click', toggleAudio)
-document.addEventListener('keydown', moveUser)
+startButton.addEventListener('click', startGame)
+highScoresButton.addEventListener('click', displayHighScoresOverlay)
+
+showStartScreen('Pronto para jogar Breakout?', 'Iniciar Jogo')
