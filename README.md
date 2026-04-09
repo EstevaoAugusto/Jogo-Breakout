@@ -23,6 +23,6 @@ git clone git@github.com:EstevaoAugusto/Jogo-Breakout.git
 Execute o arquivo 'index.html' diretamente, ou utilize a extensão Live Server do VS Code.
 O jogo tambem está disponível no GitHub Pages: https://estevaoaugusto.github.io/Jogo-Breakout/
 
-## Criador
+## Licença
 
-- Estevão Augusto da Fonseca Santos
+Este projeto está sobre a Licença MIT - veja no arquivo [LICENSE.md](LICENSE.md) para detalhes.
