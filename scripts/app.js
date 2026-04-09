@@ -1,46 +1,20 @@
 // ------------------------------------
-// 1. Configurações e constantes
+// 1. Elementos DOM
 // ------------------------------------
+const grid = document.querySelector('.grid')
+const scoreDisplay = document.querySelector('#score')
+const mainContainer = document.querySelector('.container')
+const startScreen = document.querySelector('#start-screen')
+const audioButton = document.querySelector('#audio-toggle')
+
+// ------------------------
+//  2. Audio
+// ------------------------
 const blockBreakSoundEffect = new Audio('./sounds/block-break.mp3')
 const lifeSoundEffect = new Audio('./sounds/mario-1up.mp3')
 const deathSoundEffect = new Audio('./sounds/death-sound-effect.mp3')
 const gameOverSoundEffect = new Audio('./sounds/mario-game-over.mp3')
-const grid = document.querySelector('.grid')
-const scoreDisplay = document.querySelector('#score')
-const mainContainer = document.querySelector('.container')
-const boardWidth = grid.clientWidth
-const boardHeight = grid.clientHeight
-let xDirection = -3
-let yDirection = 3
-const blockWidth = 100
-const blockHeight = 20
-const gap = 10
-const rows = 3
-const cols = 7
-const ballDiameter = 20
-const maxLives = 6
-
 let audioAllowed = true
-let blockDestroyed = 0
-let lives = 3
-let blockHitThisFrame = false
-let timerId
-let score = 0
-let gameData = {
-    highscores: [
-        
-    ]
-}
-
-// -----------------------------
-// 2. Player e bola
-// -----------------------------
-const useStart = [boardWidth / 2 - blockWidth / 2, 10]
-let currentPlayerPosition = useStart
-
-const ballStart = [boardWidth / 2 - ballDiameter / 2, 40]
-let currentBallPosition = ballStart
-
 
 const blockHitPool = []
 const poolSize = 5
@@ -53,14 +27,61 @@ let currentIndex = 0
 
 function playBlockHitPool() {
     const audio = blockHitPool[currentIndex]
-    audio.currentTime = 0
-    audio.play()
-    currentIndex = (currentIndex + 1) % poolSize
+    if(audioAllowed){
+        audio.currentTime = 0
+        audio.play()
+        currentIndex = (currentIndex + 1) % poolSize
+    }
+}
+
+// função para tocar o efeito sonoro desde o inicio
+function playSingleSound(soundEffect){
+    if (audioAllowed) {
+        soundEffect.currentTime = 0 // reinicia o som
+        soundEffect.play()          // toca o som
+    }
+}
+
+function toggleAudio() {
+    audioAllowed = !audioAllowed
+    audioButton.textContent = `Audio: ${audioAllowed ? 'on' : 'off'}`
+}
+
+// -----------------------
+// 3. Estados do Jogo
+// -----------------------
+const boardWidth = grid.clientWidth
+const boardHeight = grid.clientHeight
+let xDirection = -3
+let yDirection = 3
+const blockWidth = 100
+const blockHeight = 20
+const gap = 10
+const rows = 3
+const cols = 7
+const ballDiameter = 20
+const maxLives = 6
+let blockDestroyed = 0
+let lives = 3
+let blockHitThisFrame = false
+let timerId
+let score = 0
+let gameData = {
+    highscores: [
+        
+    ]
 }
 
 // -----------------------------
-// 3. Classe Block
+// 4. Posições Player e Bola
 // -----------------------------
+const useStart = [boardWidth / 2 - blockWidth / 2, 10]
+let currentPlayerPosition = useStart
+
+const ballStart = [boardWidth / 2 - ballDiameter / 2, 40]
+let currentBallPosition = ballStart
+
+
 class Block {
     constructor(xAxis, yAxis, blockColor){
         this.bottomLeft = [xAxis, yAxis]
@@ -72,7 +93,7 @@ class Block {
 }
 
 // -----------------------------
-// 4. Blocos
+// 5. Gereção de Bolas
 // -----------------------------
 const blocks = []
 function createBlocks(){
@@ -95,12 +116,23 @@ function createBlocks(){
 }
 createBlocks()
 
-// função para tocar o efeito sonoro desde o inicio
-function playSingleSound(soundEffect){
-    soundEffect.currentTime = 0 // reinicia o som
-    soundEffect.play()          // toca
+// draw my blocks
+function addBlocks(){
+    for(let i = 0; i < blocks.length; i++){
+        const block = document.createElement('div')
+        block.classList.add('block')
+        block.style.left = blocks[i].bottomLeft[0] + 'px'
+        block.style.bottom = blocks[i].bottomLeft[1] + 'px'
+        block.style.backgroundColor = blocks[i].blockColor
+        grid.appendChild(block)
+    }
 }
 
+addBlocks()
+
+// -----------------------------
+//  6. Funções Auxiliares
+// -----------------------------
 // Função de Formatação de Pontos
 function formatScore(){
     scoreDisplay.innerHTML = String(score).padStart(7, '0')
@@ -156,20 +188,9 @@ function updateLivesDisplay() {
 }
 updateLivesDisplay()
 
-
-// draw my blocks
-function addBlocks(){
-    for(let i = 0; i < blocks.length; i++){
-        const block = document.createElement('div')
-        block.classList.add('block')
-        block.style.left = blocks[i].bottomLeft[0] + 'px'
-        block.style.bottom = blocks[i].bottomLeft[1] + 'px'
-        block.style.backgroundColor = blocks[i].blockColor
-        grid.appendChild(block)
-    }
-}
-
-addBlocks()
+// --------------------------------
+// 7. Armazenamento Local de Pontos
+// --------------------------------
 
 // Key used to store/retrieve data in localStorage
 const STORAGE_KEY = "breakoutGameData";
@@ -202,6 +223,10 @@ function loadGameData() {
     return null;
   }
 }
+
+// ----------------------
+//  8. Inicialização do Jogo
+// ----------------------
 
 // add user
 const user = document.createElement('div')
@@ -323,7 +348,10 @@ function changeDirection(){
 }
 
 
-
+// -------------------
+//  9. Adição de Event Listeners e Intervals
+// ------------------
 timerId = setInterval(moveBall, 30)
 
+audioButton.addEventListener('click', toggleAudio)
 document.addEventListener('keydown', moveUser)

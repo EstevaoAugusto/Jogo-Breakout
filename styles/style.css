@@ -30,13 +30,13 @@ section {
   font-size: 24px;
 }
 
-#audioOption {
+#audio-toggle {
     cursor: pointer;
     display: inline-block;        /* importante para transform */
     transition: transform 0.2s ease, color 0.2s ease; /* animação suave */
 }
 
-#audioOption:hover {
+#audio-toggle:hover {
     transform: scale(1.2) translateX(10%);       /* aumenta 20% */
     color: red;                   /* opcional: muda cor */
 }
