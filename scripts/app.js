@@ -8,6 +8,7 @@ const startScreen = document.querySelector('#start-screen')
 const startButton = document.querySelector('#start-button')
 const startMessage = document.querySelector('#start-message')
 const highScoresButton = document.querySelector('#high-scores-button')
+const clearPointsData = document.querySelector('#clear-high-scores')
 const audioButton = document.querySelector('#audio-toggle')
 
 // ------------------------
@@ -17,6 +18,8 @@ const blockBreakSoundEffect = new Audio('./sounds/block-break.mp3')
 const lifeSoundEffect = new Audio('./sounds/mario-1up.mp3')
 const deathSoundEffect = new Audio('./sounds/death-sound-effect.mp3')
 const gameOverSoundEffect = new Audio('./sounds/mario-game-over.mp3')
+const ballKick = new Audio('./sounds/smb_kick.wav')
+const ballBump = new Audio('./sounds/smb_bump.wav')
 let audioAllowed = true
 
 const blockHitPool = []
@@ -53,7 +56,10 @@ function toggleAudio() {
 // -----------------------
 // 3. Estados do Jogo
 // -----------------------
-let timeBall = 30
+let gameIsRunning = false
+const timeBallMax = 20
+const timeBallMin = 10
+let timeBall = timeBallMax
 const boardWidth = grid.clientWidth
 const boardHeight = grid.clientHeight
 let xDirection = -3
@@ -94,6 +100,11 @@ function handleKeyUp(e) {
     } else if (e.key === 'ArrowRight') {
         keysPressed.ArrowRight = false
     }
+}
+
+function cancelPlayerMovement() {
+    keysPressed.ArrowLeft = false
+    keysPressed.ArrowRight = false
 }
 
 function updatePlayerMovement() {
@@ -186,9 +197,11 @@ function loseLife() {
     updateLivesDisplay()     // atualiza o display de corações
 
     if (lives === 0) {       // se não restar vidas
+        gameIsRunning = false
         clearInterval(timerId)
         scoreDisplay.innerHTML = 'Game Over'
         playSingleSound(gameOverSoundEffect)
+        cancelPlayerMovement()
         document.removeEventListener('keydown', handleKeyDown)
         document.removeEventListener('keyup', handleKeyUp)
         saveHighScore(score)
@@ -196,6 +209,7 @@ function loseLife() {
     } else {
         // pausa antes de renascer
         clearInterval(timerId)        // pausa a bola
+        cancelPlayerMovement()
         document.removeEventListener('keydown', handleKeyDown)
         document.removeEventListener('keyup', handleKeyUp)
         playSingleSound(deathSoundEffect)
@@ -207,7 +221,7 @@ function loseLife() {
             document.addEventListener('keydown', handleKeyDown)
             document.addEventListener('keyup', handleKeyUp)
             timerId = setInterval(moveBall, timeBall)  // retoma o jogo
-        }, 3000) // pausa de 1 segundo
+        }, 3000) // pausa de 3 segundos
     }
 }
 
@@ -239,6 +253,9 @@ function showStartScreen(message, buttonText) {
     startMessage.textContent = message
     startButton.textContent = buttonText
     startScreen.classList.remove('hidden')
+    highScoresButton.classList.remove('hidden')
+    clearPointsData.classList.add('hidden')
+    startButton.addEventListener('click', startGame) 
 }
 
 function hideStartScreen() {
@@ -253,6 +270,7 @@ function resetLevel() {
 }
 
 function resetGame() {
+    timeBall = timeBallMax
     score = 0
     lives = 3
     blocksDestroyed = 0
@@ -269,6 +287,7 @@ function resetGame() {
 }
 
 function startGame() {
+    gameIsRunning = true
     hideStartScreen()
     resetGame()
     keysPressed.ArrowLeft = false
@@ -279,7 +298,7 @@ function startGame() {
 }
 
 function showGameOverScreen() {
-    showStartScreen('Game Over! Volte ao menu para recomeçar.', 'Voltar ao menu')
+    showStartScreen('Game Over!', 'Tentar novamente.')
 }
 
 // --------------------------------
@@ -289,18 +308,30 @@ function showGameOverScreen() {
 // Key used to store/retrieve data in localStorage
 const STORAGE_KEY = "breakoutGameData";
 
+function clearHighScore() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY) || {}; // carrega dados existentes ou cria um objeto vazio
+        data.highScores = []; // reseta o array de high scores
+        saveGameData(data);   // salva de volta no localStorage
+        console.log("High scores limpos!");
+    } catch (error) {
+        console.error("Failed to clear highscore:", error);
+    }
+}
+
+
 /**
  * Save data to localStorage
  * @param {Object} data - The data to save (e.g., { highScores: [...] })
  */
 function saveGameData(data) {
-  try {
-    const jsonData = JSON.stringify(data); // convert to JSON string
-    localStorage.setItem(STORAGE_KEY, jsonData);
-    console.log("Game data saved!");
-  } catch (error) {
-    console.error("Failed to save game data:", error);
-  }
+    try {
+        const jsonData = JSON.stringify(data); // convert to JSON string
+        localStorage.setItem(STORAGE_KEY, jsonData);
+        console.log("Game data saved!");
+    } catch (error) {
+        console.error("Failed to save game data:", error);
+    }
 }
 
 /**
@@ -308,23 +339,23 @@ function saveGameData(data) {
  * @returns {Object|null} The loaded data, or null if none exists
  */
 function loadGameData() {
-  try {
-    const jsonData = localStorage.getItem(STORAGE_KEY);
-    if (!jsonData) return null; // no saved data
-    return JSON.parse(jsonData); // convert back to JS object
-  } catch (error) {
-    console.error("Failed to load game data:", error);
-    return null;
-  }
+    try {
+        const jsonData = localStorage.getItem(STORAGE_KEY);
+        if (!jsonData) return null; // no saved data
+        return JSON.parse(jsonData); // convert back to JS object
+    } catch (error) {
+        console.error("Failed to load game data:", error);
+        return null;
+    }
 }
 
 function loadHighScores() {
-  const data = loadGameData()
-  return data && data.highscores ? data.highscores : []
+    const data = loadGameData()
+    return data && data.highscores ? data.highscores : []
 }
 
 function displayHighScoresOverlay() {
-    const highscores = loadHighScores()
+    let highscores = loadHighScores()
     let content = '<h2 class="screen-title">Melhores Pontuações</h2><div style="text-align: left; font-size: 12px; max-height: 300px; overflow-y: auto;">'
     
     if (highscores.length === 0) {
@@ -339,13 +370,38 @@ function displayHighScoresOverlay() {
     
     content += '</div>'
     startMessage.innerHTML = content
+
+    clearPointsData.classList.remove('hidden')
+    clearPointsData.content = 'Limpar Pontuações'
+    clearPointsData.onclick = (e) => {
+        e.preventDefault()
+        clearHighScore()
+        highscores = loadHighScores()
+        content = '<h2 class="screen-title">Melhores Pontuações</h2><div style="text-align: left; font-size: 12px; max-height: 300px; overflow-y: auto;">'
+        
+        if (highscores.length === 0) {
+            content += '<p>Nenhuma pontuação salva ainda!</p>'
+        } else {
+            content += '<table style="width: 100%; border-collapse: collapse; font-size: 12px;"><tr style="border-bottom: 1px solid white;"><td style="padding: 4px; text-align: center;">Pos</td><td style="padding: 4px; text-align: right;">Pontos</td><td style="padding: 4px; text-align: right;">Data</td></tr>'
+            highscores.forEach((entry, index) => {
+                content += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.3);"><td style="padding: 4px; text-align: center;">${index + 1}º</td><td style="padding: 4px; text-align: right;">${entry.score}</td><td style="padding: 4px; text-align: right;">${entry.date}</td></tr>`
+            })
+            content += '</table>'
+        }
+        
+        content += '</div>'
+
+        startMessage.innerHTML = content
+    }
+
     startButton.textContent = 'Voltar ao Menu'
+    startButton.removeEventListener('click', startGame) 
     startButton.onclick = (e) => {
         e.preventDefault()
-        startButton.onclick = null
         showStartScreen('Pronto para jogar Breakout?', 'Iniciar Jogo')
     }
     startScreen.classList.remove('hidden')
+    highScoresButton.classList.add('hidden')
 }
 
 // ----------------------
@@ -486,6 +542,9 @@ function checkForCollision() {
                     resetBall()
                     resetPlayer()
                     resetLevel()
+                    if(timeBall > timeBallMin){
+                        timeBall--
+                    }
                     blocksDestroyed = 0
                 }
                 break
@@ -494,14 +553,17 @@ function checkForCollision() {
 
     if (ball.left <= 0) {
         xDirection = Math.abs(xDirection)
+        playSingleSound(ballBump)
     }
 
     if (ball.right >= boardWidth) {
         xDirection = -Math.abs(xDirection)
+        playSingleSound(ballBump)
     }
 
     if (ball.top >= boardHeight) {
         yDirection = -Math.abs(yDirection)
+        playSingleSound(ballBump)
     }
 
     const paddleTop = currentPlayerPosition[1] + blockHeight
@@ -511,6 +573,8 @@ function checkForCollision() {
         ball.bottom >= currentPlayerPosition[1] &&
         yDirection < 0) {
             reflectBallOnPaddle()
+            playSingleSound(ballKick)
+            console.log(1)
     }
 
     if (ball.bottom <= 0) {

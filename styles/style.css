@@ -112,7 +112,7 @@ section {
     line-height: 1.4;
 }
 
-#start-button, #high-scores-button{
+#start-button, #high-scores-button, #clear-high-scores {
     font-family: 'Press Start 2P', cursive;
     font-size: 16px;
     padding: 12px 20px;
@@ -123,7 +123,7 @@ section {
     transition: background 0.2s ease, color 0.2s ease;
 }
 
-#start-button:hover, #high-scores-button:hover{
+#start-button:hover, #high-scores-button:hover, #clear-high-scores:hover {
     background: white;
     color: black;
 }
