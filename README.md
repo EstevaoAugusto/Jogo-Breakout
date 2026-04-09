@@ -21,6 +21,7 @@ git clone git@github.com:EstevaoAugusto/Jogo-Breakout.git
 ```
 
 Execute o arquivo 'index.html' diretamente, ou utilize a extensão Live Server do VS Code.
+O jogo tambem está disponível no GitHub Pages: https://estevaoaugusto.github.io/Jogo-Breakout/
 
 ## Criador
 
